@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# pleep-peep
 
-## Getting Started
+Стартовый проект на Next.js с App Router, TypeScript и Tailwind CSS. Здесь настроены базовые проверки и автоматическая проверка кода при отправке изменений в GitHub.
 
-First, run the development server:
+## Требования
+
+- Node.js 22 (минимум 20.9)
+- pnpm 11
+
+## Запуск
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Проверки
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm lint
+pnpm typecheck
+pnpm build
+```
 
-## Learn More
+GitHub Actions запускает эти проверки при push и pull request в `main`.
 
-To learn more about Next.js, take a look at the following resources:
+## Переменные окружения
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Скопируйте `.env.example` в `.env.local` и заполните значения по мере добавления сервисов. Не отправляйте секреты в Git.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Структура
 
-## Deploy on Vercel
+- `src/app/` — страницы, layout и стили приложения.
+- `public/` — статические файлы.
+- `.github/workflows/` — автоматические проверки.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Для новых импортов из `src` доступен алиас `@/*`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Полезные ссылки
+
+- [Документация Next.js](https://nextjs.org/docs)
+- [Документация Tailwind CSS](https://tailwindcss.com/docs)
