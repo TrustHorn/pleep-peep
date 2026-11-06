@@ -69,7 +69,7 @@ export function PlatformBadge({ platform, compact = false }: { platform: "TikTok
 }
 
 export function AuthCard({ title, description, children, footer }: { title: string; description: string; children: ReactNode; footer: ReactNode }) {
-  return <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-10"><Link href="/" aria-label="pleep-peep" className="mb-8"><Brand/></Link><Panel className="w-full max-w-[420px] p-7 sm:p-8"><h1 className="text-[26px] font-semibold tracking-[-1px]">{title}</h1><p className="mt-2 mb-6 text-xs leading-6 text-muted">{description}</p>{children}</Panel><p className="mt-6 text-xs text-muted">{footer}</p><p className="mt-4 max-w-sm text-center text-[10px] leading-5 text-[#989e93]">Демо-режим: данные не отправляются на сервер, учётные записи не создаются.</p></div>;
+  return <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-10"><Link href="/" aria-label="pleep-peep" className="mb-8"><Brand/></Link><Panel className="w-full max-w-[420px] p-7 sm:p-8"><h1 className="text-[26px] font-semibold tracking-[-1px]">{title}</h1><p className="mt-2 mb-6 text-xs leading-6 text-muted">{description}</p>{children}</Panel><p className="mt-6 text-xs text-muted">{footer}</p><p className="mt-4 max-w-sm text-center text-[10px] leading-5 text-[#989e93]">Локальный режим: аккаунты и данные сохраняются только в этом браузере. Синхронизации между устройствами нет.</p></div>;
 }
 
 export function EmptyState({ title, description, children }: { title: string; description: string; children?: ReactNode }) {

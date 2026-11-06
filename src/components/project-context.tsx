@@ -1,13 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { createContext, useContext, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { useUserState } from "./auth-context";
 import { demoProjects, type Project } from "@/lib/demo-data";
 
 type ProjectsState = [Project[], Dispatch<SetStateAction<Project[]>>];
 const ProjectContext = createContext<ProjectsState | null>(null);
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
-  const state = useState<Project[]>(demoProjects);
+  const state = useUserState<Project[]>("projects", demoProjects);
   return <ProjectContext.Provider value={state}>{children}</ProjectContext.Provider>;
 }
 

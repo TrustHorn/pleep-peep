@@ -45,7 +45,7 @@ export default function ProjectsPage() {
           : <button key={project.id} onClick={() => setSelected(project)} className="block text-left"><Panel className="h-full p-6 transition-transform hover:-translate-y-1">{body}</Panel></button>;
       })}
     </div>
-    <p className="mt-6 flex items-start gap-2 text-[10px] leading-5 text-[#969d8e]"><Icon name="info" size={13} className="mt-0.5 shrink-0"/>Проекты хранятся в памяти до перезагрузки страницы. Страницы деталей есть у демонстрационных проектов, созданные вами открываются в окне.</p>
+    <p className="mt-6 flex items-start gap-2 text-[10px] leading-5 text-[#969d8e]"><Icon name="info" size={13} className="mt-0.5 shrink-0"/>Проекты сохраняются в этом браузере, отдельно для каждого аккаунта. Страницы деталей есть у демонстрационных проектов, созданные вами открываются в окне.</p>
     <Modal open={open} onClose={() => setOpen(false)} title="Новый проект" description="Опишите, что хотите исследовать.">
       <form onSubmit={create} className="space-y-5" noValidate>
         <div><label htmlFor="project-name" className="field-label">Название <span className="text-accent">*</span></label><input id="project-name" className="input" value={name} maxLength={80} onChange={(event) => { setName(event.target.value); setError(""); }} placeholder="Например, Летнее меню"/></div>
@@ -56,7 +56,7 @@ export default function ProjectsPage() {
       </form>
     </Modal>
     <Modal open={selected !== null} onClose={() => setSelected(null)} title={selected?.name ?? "Проект"} description={selected?.goal}>
-      {selected && <div className="space-y-4"><div className="flex gap-2">{selected.platforms.map((platform) => <PlatformBadge key={platform} platform={platform}/>)}</div><p className="rounded-xl bg-canvas p-4 text-xs leading-6 text-muted">Проект создан в этой сессии и пока без данных. Добавьте конкурентов, чтобы начать анализ.</p><Link href="/competitors" onClick={() => setSelected(null)} className="btn btn-primary w-full">Добавить конкурентов<Icon name="arrow-right" size={16}/></Link></div>}
+      {selected && <div className="space-y-4"><div className="flex gap-2">{selected.platforms.map((platform) => <PlatformBadge key={platform} platform={platform}/>)}</div><p className="rounded-xl bg-canvas p-4 text-xs leading-6 text-muted">Проект сохранён в этом браузере и пока без данных. Добавьте конкурентов, чтобы начать анализ.</p><Link href="/competitors" onClick={() => setSelected(null)} className="btn btn-primary w-full">Добавить конкурентов<Icon name="arrow-right" size={16}/></Link></div>}
     </Modal>
   </>;
 }

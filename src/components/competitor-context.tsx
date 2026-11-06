@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { createContext, useContext, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { useUserState } from "./auth-context";
 
 export type Account = {
   id: string;
@@ -29,7 +30,7 @@ type AccountsState = [Account[], Dispatch<SetStateAction<Account[]>>];
 const CompetitorContext = createContext<AccountsState | null>(null);
 
 export function CompetitorProvider({ children }: { children: ReactNode }) {
-  const state = useState<Account[]>(initialAccounts);
+  const state = useUserState<Account[]>("competitors", initialAccounts);
   return <CompetitorContext.Provider value={state}>{children}</CompetitorContext.Provider>;
 }
 

@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { Brand, Icon, Modal } from "./ui";
 import { CompetitorProvider } from "./competitor-context";
 import { ProjectProvider } from "./project-context";
+import { AuthProvider, StorageNotice, useAuth, useUserState } from "./auth-context";
 
 type Period = "7" | "30" | "90";
 const WorkspaceContext = createContext<{ period: Period; toast: (message: string) => void }>({ period: "30", toast: () => {} });
@@ -28,14 +29,16 @@ const navigation = [
 const authRoutes = ["/login", "/register"];
 
 export function AppShell({ children }: { children: ReactNode }) {
-  return <CompetitorProvider><ProjectProvider><WorkspaceShell>{children}</WorkspaceShell></ProjectProvider></CompetitorProvider>;
+  return <AuthProvider><CompetitorProvider><ProjectProvider><WorkspaceShell>{children}</WorkspaceShell><StorageNotice/></ProjectProvider></CompetitorProvider></AuthProvider>;
 }
 
 function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { user, ready, logout } = useAuth();
   const current = navigation.find((item) => pathname.startsWith(item.href)) ?? navigation[0];
   const isAuth = authRoutes.some((route) => pathname.startsWith(route));
-  const [period, setPeriod] = useState<Period>("30");
+  const [period, setPeriod] = useUserState<Period>("period", "30");
+  const [workspace] = useUserState("workspace-settings", { name: "SLOW Coffee", niche: "Кофейня · Алматы", base: "views", period: "30" });
   const [mobileMenu, setMobileMenu] = useState(false);
   const [about, setAbout] = useState(false);
   const [search, setSearch] = useState(false);
@@ -48,7 +51,13 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [notification]);
 
+  if (!ready) return <p role="status" className="p-8 text-sm text-muted">Загружаем ваше пространство…</p>;
   if (isAuth) return <>{children}</>;
+  const initials = user ? user.name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() : "SC";
+  function signOut() {
+    try { logout(); }
+    catch { toast("Не удалось выйти: браузер запретил изменение хранилища."); }
+  }
 
   const navLinks = (close?: () => void) => <nav aria-label="Главная навигация" className="space-y-1.5">{navigation.map((item) =>
     <Link key={item.href} href={item.href} onClick={close} aria-current={current.href === item.href ? "page" : undefined} className="sidebar-link flex items-center gap-3 rounded-xl px-3.5 py-3.5 text-[13px] font-medium text-[#737b70] hover:bg-soft hover:text-ink">
@@ -62,7 +71,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
       <Link href="/" className="px-6 pt-8 pb-8" aria-label="pleep-peep — обзор"><Brand/></Link>
       <div className="mx-5 mb-8 flex items-center gap-2.5 rounded-xl border border-border bg-canvas p-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#ece6d7] text-[#73654d]"><Icon name="coffee" size={20}/></span>
-        <div><p className="text-xs font-semibold">SLOW Coffee</p><p className="mt-1 text-[10px] text-muted">Кофейня · Алматы</p></div><span className="ml-auto h-1.5 w-1.5 rounded-full bg-positive"/>
+        <div><p className="text-xs font-semibold">{workspace.name}</p><p className="mt-1 text-[10px] text-muted">{workspace.niche}</p></div><span className="ml-auto h-1.5 w-1.5 rounded-full bg-positive"/>
       </div>
       <div className="scrollbar-soft min-h-0 overflow-y-auto px-4"><p className="section-kicker mb-4 px-3.5 text-[9px]">Рабочее пространство</p>{navLinks()}</div>
       <div className="flex-1"/>
@@ -72,7 +81,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
         <Link href="/ai-studio" className="mt-4 flex items-center justify-between text-[11px] font-semibold text-[#8a704e]">Вдохновиться<Icon name="arrow-up-right" size={15}/></Link>
       </div>
       <button onClick={() => setAbout(true)} className="mx-5 mb-4 flex items-center gap-2.5 rounded-xl p-2 text-left text-xs text-muted hover:bg-soft"><Icon name="info" size={17}/>О демо-пространстве</button>
-      <div className="mx-5 flex items-center gap-2.5 border-t border-border py-5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">SC</span><div><p className="text-xs font-semibold">Команда SLOW</p><p className="mt-1 text-[10px] text-muted">Личное пространство</p></div><span className="ml-auto rounded-md bg-soft px-1.5 py-1 text-[8px] text-muted">DEMO</span></div>
+      <div className="mx-5 flex items-center gap-2.5 border-t border-border py-5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">{initials}</span><div className="min-w-0"><p className="truncate text-xs font-semibold">{user?.name ?? "Команда SLOW"}</p><p className="mt-1 truncate text-[10px] text-muted">{user?.email ?? "Демо-пространство"}</p></div></div>
     </aside>
     <div className="min-h-screen lg:ml-[230px]">
       <header className="flex h-[78px] items-center justify-between gap-3 border-b border-border bg-white/80 px-5 sm:px-8 xl:px-10">
@@ -81,15 +90,15 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
           <button onClick={() => setAbout(true)} className="hidden items-center gap-1.5 text-[10px] text-muted md:flex"><span className="h-1.5 w-1.5 rounded-full bg-accent"/>Демо-данные</button>
           <button onClick={() => setSearch(true)} className="hidden rounded-lg p-2 text-muted hover:bg-soft sm:block" aria-label="Поиск по страницам"><Icon name="search" size={18}/></button>
           <label className="relative flex items-center gap-2 rounded-lg border border-border bg-white px-2.5 py-2 text-[11px]"><Icon name="calendar" size={15} className="text-muted"/><span className="sr-only">Период исследования</span><select value={period} onChange={(event) => setPeriod(event.target.value as Period)} className="max-w-24 appearance-none bg-transparent pr-4 text-[11px] outline-none"><option value="7">7 дней</option><option value="30">30 дней</option><option value="90">90 дней</option></select><Icon name="chevron-down" size={12} className="pointer-events-none absolute right-2"/></label>
-          <span className="hidden h-7 w-px bg-border sm:block"/><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e6eddf] text-[10px] font-semibold text-[#68795a]" aria-label="Демонстрационное пространство SLOW Coffee">SC</span>
+          <span className="hidden h-7 w-px bg-border sm:block"/><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e6eddf] text-[10px] font-semibold text-[#68795a]" aria-label={user?.name ?? "Демо-пространство"}>{initials}</span>{user ? <button className="text-xs text-muted hover:text-accent" onClick={signOut}>Выйти</button> : <Link href="/login" className="text-xs font-semibold text-accent">Войти</Link>}
         </div>
       </header>
       <main id="main-content" className="page-enter mx-auto max-w-[1510px] px-5 pt-8 pb-8 sm:px-8 xl:px-10">
-        {children}
+        <div key={user?.id ?? "demo"}>{children}</div>
         <footer className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-[10px] text-[#989e93]"><span>pleep·peep <span className="mx-1.5">/</span> от наблюдений к идеям</span><span>Учебное пространство · демонстрационная выборка</span></footer>
       </main>
     </div>
-    <Modal open={mobileMenu} onClose={() => setMobileMenu(false)} title="Ваше пространство"><div className="mb-6"><Brand/></div>{navLinks(() => setMobileMenu(false))}<Link href="/login" onClick={() => setMobileMenu(false)} className="btn btn-secondary mt-5 w-full">Войти</Link></Modal>
+    <Modal open={mobileMenu} onClose={() => setMobileMenu(false)} title="Ваше пространство"><div className="mb-6"><Brand/></div>{navLinks(() => setMobileMenu(false))}{user ? <button onClick={() => { signOut(); setMobileMenu(false); }} className="btn btn-secondary mt-5 w-full">Выйти</button> : <Link href="/login" onClick={() => setMobileMenu(false)} className="btn btn-secondary mt-5 w-full">Войти</Link>}</Modal>
     <Modal open={about} onClose={() => setAbout(false)} title="Место для хороших идей" description="Локальный прототип pleep-peep по техническому заданию проекта.">
       <div className="space-y-4 text-[13px] leading-7 text-muted"><p>Исследуйте демонстрационную выборку, сравнивайте аккаунты и собирайте сценарии для своего контента.</p><div className="rounded-xl bg-canvas p-4"><p className="font-semibold text-ink">Всё под рукой</p><p>Все разделы, учебные показатели и шаблоны сценариев. Аккаунты социальных сетей не подключаются. Черновики сохраняются только в этом браузере.</p></div><p>Период учебной выборки: август — октябрь 2026. Новые аккаунты добавляются без метрик, пока нет исходных данных.</p></div>
       <button onClick={() => setAbout(false)} className="btn btn-primary mt-6 w-full">Понятно, начнём<Icon name="arrow-right" size={16}/></button>
