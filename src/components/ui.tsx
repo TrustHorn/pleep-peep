@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
 
 const paths: Record<string, ReactNode> = {
@@ -38,6 +39,13 @@ const paths: Record<string, ReactNode> = {
   bell: <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>,
   message: <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H3l2-5a8.5 8.5 0 1 1 16-3.5Z"/>,
   folder: <path d="M3 6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v10H3V6Z"/>,
+  hash: <path d="M5 9h15M4 15h15M10 3 8 21m8-18-2 18"/>,
+  file: <><path d="M6 3h8l5 5v13H6V3Z"/><path d="M14 3v5h5M9 13h7m-7 4h7"/></>,
+  user: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
+  help: <><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17v.1"/></>,
+  settings: <><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M19 5l-2 2M7 17l-2 2"/></>,
+  shield: <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Zm-3 9 2 2 4-4"/>,
+  lock: <><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
 };
 
 export function Icon({ name, size = 20, className = "" }: { name: string; size?: number; className?: string }) {
@@ -58,6 +66,10 @@ export function PageHeading({ eyebrow, title, description, children }: { eyebrow
 
 export function PlatformBadge({ platform, compact = false }: { platform: "TikTok" | "Instagram"; compact?: boolean }) {
   return <span className={`relative inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-medium ${platform === "TikTok" ? "bg-[#f0f2ed] text-ink" : "bg-[#f8edf0] text-[#a75a72]"}`}><Icon name={platform === "TikTok" ? "tiktok" : "instagram"} size={12}/><span className={compact ? "sr-only" : ""}>{platform}</span></span>;
+}
+
+export function AuthCard({ title, description, children, footer }: { title: string; description: string; children: ReactNode; footer: ReactNode }) {
+  return <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4 py-10"><Link href="/" aria-label="pleep-peep" className="mb-8"><Brand/></Link><Panel className="w-full max-w-[420px] p-7 sm:p-8"><h1 className="text-[26px] font-semibold tracking-[-1px]">{title}</h1><p className="mt-2 mb-6 text-xs leading-6 text-muted">{description}</p>{children}</Panel><p className="mt-6 text-xs text-muted">{footer}</p><p className="mt-4 max-w-sm text-center text-[10px] leading-5 text-[#989e93]">Демо-режим: данные не отправляются на сервер, учётные записи не создаются.</p></div>;
 }
 
 export function EmptyState({ title, description, children }: { title: string; description: string; children?: ReactNode }) {

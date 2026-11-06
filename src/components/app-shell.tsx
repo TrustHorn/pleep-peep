@@ -5,23 +5,36 @@ import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { Brand, Icon, Modal } from "./ui";
 import { CompetitorProvider } from "./competitor-context";
+import { ProjectProvider } from "./project-context";
 
 type Period = "7" | "30" | "90";
 const WorkspaceContext = createContext<{ period: Period; toast: (message: string) => void }>({ period: "30", toast: () => {} });
 export const useWorkspace = () => useContext(WorkspaceContext);
 const navigation = [
   { href: "/dashboard", label: "Обзор проекта", icon: "grid", number: "01" },
-  { href: "/competitors", label: "Конкуренты", icon: "users", number: "02" },
-  { href: "/ai-studio", label: "AI-студия", icon: "sparkles", number: "03" },
+  { href: "/projects", label: "Проекты", icon: "folder", number: "02" },
+  { href: "/competitors", label: "Конкуренты", icon: "users", number: "03" },
+  { href: "/analytics", label: "Аналитика", icon: "chart", number: "04" },
+  { href: "/comments", label: "Комментарии", icon: "message", number: "05" },
+  { href: "/hashtags", label: "Хештеги", icon: "hash", number: "06" },
+  { href: "/ai-studio", label: "AI-студия", icon: "sparkles", number: "07" },
+  { href: "/video-studio", label: "Видеостудия", icon: "video", number: "08" },
+  { href: "/reports", label: "AI Summary", icon: "file", number: "09" },
+  { href: "/team", label: "Команда", icon: "user", number: "10" },
+  { href: "/support", label: "Поддержка", icon: "help", number: "11" },
+  { href: "/settings", label: "Настройки", icon: "settings", number: "12" },
+  { href: "/admin", label: "Администрирование", icon: "shield", number: "13" },
 ];
+const authRoutes = ["/login", "/register"];
 
 export function AppShell({ children }: { children: ReactNode }) {
-  return <CompetitorProvider><WorkspaceShell>{children}</WorkspaceShell></CompetitorProvider>;
+  return <CompetitorProvider><ProjectProvider><WorkspaceShell>{children}</WorkspaceShell></ProjectProvider></CompetitorProvider>;
 }
 
 function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const current = navigation.find((item) => pathname.startsWith(item.href)) ?? navigation[0];
+  const isAuth = authRoutes.some((route) => pathname.startsWith(route));
   const [period, setPeriod] = useState<Period>("30");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [about, setAbout] = useState(false);
@@ -34,6 +47,8 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
     const timer = setTimeout(() => setNotification(null), 4200);
     return () => clearTimeout(timer);
   }, [notification]);
+
+  if (isAuth) return <>{children}</>;
 
   const navLinks = (close?: () => void) => <nav aria-label="Главная навигация" className="space-y-1.5">{navigation.map((item) =>
     <Link key={item.href} href={item.href} onClick={close} aria-current={current.href === item.href ? "page" : undefined} className="sidebar-link flex items-center gap-3 rounded-xl px-3.5 py-3.5 text-[13px] font-medium text-[#737b70] hover:bg-soft hover:text-ink">
@@ -49,7 +64,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#ece6d7] text-[#73654d]"><Icon name="coffee" size={20}/></span>
         <div><p className="text-xs font-semibold">SLOW Coffee</p><p className="mt-1 text-[10px] text-muted">Кофейня · Алматы</p></div><span className="ml-auto h-1.5 w-1.5 rounded-full bg-positive"/>
       </div>
-      <div className="px-4"><p className="section-kicker mb-4 px-3.5 text-[9px]">Рабочее пространство</p>{navLinks()}</div>
+      <div className="scrollbar-soft min-h-0 overflow-y-auto px-4"><p className="section-kicker mb-4 px-3.5 text-[9px]">Рабочее пространство</p>{navLinks()}</div>
       <div className="flex-1"/>
       <div className="mx-5 mb-5 overflow-hidden rounded-2xl bg-[#f4f0e7] p-4">
         <div className="mb-3 flex items-center gap-1 text-accent"><Icon name="sparkles" size={20}/><span className="h-px flex-1 bg-[#ddd5c5]"/></div>
@@ -74,14 +89,14 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
         <footer className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-[10px] text-[#989e93]"><span>pleep·peep <span className="mx-1.5">/</span> от наблюдений к идеям</span><span>Учебное пространство · демонстрационная выборка</span></footer>
       </main>
     </div>
-    <Modal open={mobileMenu} onClose={() => setMobileMenu(false)} title="Ваше пространство"><div className="mb-6"><Brand/></div>{navLinks(() => setMobileMenu(false))}</Modal>
+    <Modal open={mobileMenu} onClose={() => setMobileMenu(false)} title="Ваше пространство"><div className="mb-6"><Brand/></div>{navLinks(() => setMobileMenu(false))}<Link href="/login" onClick={() => setMobileMenu(false)} className="btn btn-secondary mt-5 w-full">Войти</Link></Modal>
     <Modal open={about} onClose={() => setAbout(false)} title="Место для хороших идей" description="Локальный прототип pleep-peep по техническому заданию проекта.">
-      <div className="space-y-4 text-[13px] leading-7 text-muted"><p>Исследуйте демонстрационную выборку, сравнивайте аккаунты и собирайте сценарии для своего контента.</p><div className="rounded-xl bg-canvas p-4"><p className="font-semibold text-ink">Всё под рукой</p><p>Три экрана, учебные показатели и шаблоны сценариев. Аккаунты социальных сетей не подключаются. Черновики сохраняются только в этом браузере.</p></div><p>Период учебной выборки: август — октябрь 2026. Новые аккаунты добавляются без метрик, пока нет исходных данных.</p></div>
+      <div className="space-y-4 text-[13px] leading-7 text-muted"><p>Исследуйте демонстрационную выборку, сравнивайте аккаунты и собирайте сценарии для своего контента.</p><div className="rounded-xl bg-canvas p-4"><p className="font-semibold text-ink">Всё под рукой</p><p>Все разделы, учебные показатели и шаблоны сценариев. Аккаунты социальных сетей не подключаются. Черновики сохраняются только в этом браузере.</p></div><p>Период учебной выборки: август — октябрь 2026. Новые аккаунты добавляются без метрик, пока нет исходных данных.</p></div>
       <button onClick={() => setAbout(false)} className="btn btn-primary mt-6 w-full">Понятно, начнём<Icon name="arrow-right" size={16}/></button>
     </Modal>
     <Modal open={search} onClose={() => setSearch(false)} title="Куда отправимся?">
       <label className="sr-only" htmlFor="page-search">Поиск страницы</label><input id="page-search" className="input mb-4" placeholder="Найти страницу…" value={query} onChange={(event) => setQuery(event.target.value)}/>
-      <div className="space-y-2">{navigation.filter((item) => item.label.toLowerCase().includes(query.toLowerCase())).map((item) => <Link key={item.href} href={item.href} onClick={() => { setSearch(false); setQuery(""); }} className="flex items-center gap-3 rounded-xl bg-canvas p-4 hover:bg-soft"><Icon name={item.icon}/><span className="flex-1 text-sm">{item.label}</span><Icon name="arrow-right" size={16}/></Link>)}{!navigation.some((item) => item.label.toLowerCase().includes(query.toLowerCase())) && <p className="py-6 text-center text-sm text-muted">Такой страницы пока нет. Попробуйте «студия».</p>}</div>
+      <div className="space-y-2">{navigation.filter((item) => item.label.toLowerCase().includes(query.toLowerCase())).map((item) => <Link key={item.href} href={item.href} onClick={() => { setSearch(false); setQuery(""); }} className="flex items-center gap-3 rounded-xl bg-canvas p-4 hover:bg-soft"><Icon name={item.icon}/><span className="flex-1 text-sm">{item.label}</span><Icon name="arrow-right" size={16}/></Link>)}{!navigation.some((item) => item.label.toLowerCase().includes(query.toLowerCase())) && <p className="py-6 text-center text-sm text-muted">Такой страницы пока нет. Попробуйте «аналитика».</p>}</div>
     </Modal>
     {notification && <div role="status" className="fixed right-4 bottom-5 left-4 z-50 flex items-center gap-3 rounded-2xl bg-ink px-5 py-4 text-xs text-white shadow-xl sm:left-auto sm:max-w-md"><span className="text-[#afc799]"><Icon name="check" size={18}/></span><span className="flex-1">{notification.text}</span><button onClick={() => setNotification(null)} aria-label="Закрыть уведомление" className="ml-3 rounded p-1 text-white/60 hover:text-white"><Icon name="close" size={15}/></button></div>}
   </WorkspaceContext.Provider>;
