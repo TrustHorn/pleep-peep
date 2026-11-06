@@ -2,32 +2,10 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useWorkspace } from "@/components/app-shell";
+import { useUserState } from "@/components/auth-context";
 import { EmptyState, Icon, Modal, PageHeading, Panel, PlatformBadge } from "@/components/ui";
+import { useStudioDrafts, type Brief, type Draft, type Idea } from "@/lib/studio-drafts";
 
-type Brief = {
-  topic: string;
-  audience: string;
-  platform: "Instagram" | "TikTok";
-  duration: "15" | "30" | "60";
-  tone: string;
-  hashtags: string;
-};
-
-type Scene = { time: string; title: string; visual: string; voice: string };
-type Idea = {
-  title: string;
-  format: string;
-  angle: string;
-  hook: string;
-  scenes: Scene[];
-  cta: string;
-  description: string;
-  hashtags: string;
-};
-
-type Draft = { id: string; savedAt: string; brief: Brief; ideas: Idea[]; selected: number };
-
-const STORAGE_KEY = "pleep-peep:studio-drafts:v1";
 const initialBrief: Brief = {
   topic: "Кофе, ради которого хочется замедлиться",
   audience: "Горожане 20–35 лет, которые ценят маленькие ритуалы",
@@ -102,31 +80,7 @@ function createIdeas(brief: Brief): Idea[] {
   ];
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isIdea(value: unknown): value is Idea {
-  if (!isRecord(value)) return false;
-  const fields = ["title", "format", "angle", "hook", "cta", "description", "hashtags"];
-  return fields.every((field) => typeof value[field] === "string") && Array.isArray(value.scenes)
-    && value.scenes.every((scene: unknown) => isRecord(scene) && ["time", "title", "visual", "voice"].every((field) => typeof scene[field] === "string"));
-}
-
-function readDrafts(): Draft[] {
-  const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  if (!Array.isArray(saved)) return [];
-  return saved.filter((draft: unknown): draft is Draft => {
-    if (!isRecord(draft) || !isRecord(draft.brief)) return false;
-    const brief = draft.brief;
-    return typeof draft.id === "string" && typeof draft.savedAt === "string"
-      && typeof draft.selected === "number" && Number.isInteger(draft.selected) && Array.isArray(draft.ideas) && draft.ideas.length === 3
-      && draft.ideas.every(isIdea) && draft.selected >= 0 && draft.selected < draft.ideas.length
-      && ["topic", "audience", "tone", "hashtags"].every((key) => typeof brief[key] === "string")
-      && (brief.platform === "Instagram" || brief.platform === "TikTok")
-      && ["15", "30", "60"].includes(String(brief.duration));
-  });
-}
+const initialIdeas = createIdeas(initialBrief);
 
 function scriptText(idea: Idea, brief: Brief) {
   return `${idea.title}\n${idea.format} · ${brief.platform} · ${brief.duration} секунд\nАудитория: ${brief.audience}\nТон: ${brief.tone}\n\nВСТУПЛЕНИЕ\n${idea.hook}\n\nСЦЕНАРИЙ\n${idea.scenes.map((scene, index) => `${index + 1}. ${scene.title} (${scene.time})\nВ кадре: ${scene.visual}\nОзвучивание: ${scene.voice}`).join("\n\n")}\n\nПРИЗЫВ К ДЕЙСТВИЮ\n${idea.cta}\n\nОПИСАНИЕ ПУБЛИКАЦИИ\n${idea.description}\n\n${idea.hashtags}\n\nПодготовлено в демо-студии pleep-peep. Сценарий можно адаптировать перед съёмкой.`;
@@ -134,19 +88,19 @@ function scriptText(idea: Idea, brief: Brief) {
 
 export default function AiStudioPage() {
   const { toast } = useWorkspace();
-  const [brief, setBrief] = useState<Brief>(initialBrief);
-  const [resultBrief, setResultBrief] = useState<Brief>(initialBrief);
-  const [ideas, setIdeas] = useState<Idea[]>(() => createIdeas(initialBrief));
-  const [selected, setSelected] = useState(0);
+  const [brief, setBrief] = useUserState<Brief>("studio-brief", initialBrief);
+  const [resultBrief, setResultBrief] = useUserState<Brief>("studio-result-brief", initialBrief);
+  const [ideas, setIdeas] = useUserState<Idea[]>("studio-ideas", initialIdeas);
+  const [selected, setSelected] = useUserState("studio-selected", 0);
   const [tab, setTab] = useState<"ideas" | "script">("ideas");
   const [generating, setGenerating] = useState(false);
   const [draftsOpen, setDraftsOpen] = useState(false);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [draftId, setDraftId] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [drafts, setDrafts] = useStudioDrafts();
+  const [draftId, setDraftId] = useUserState<string | null>("studio-draft-id", null);
+  const [saved, setSaved] = useUserState("studio-saved", false);
   const [editing, setEditing] = useState(false);
   const generationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeIdea = ideas[selected];
+  const activeIdea = ideas[Math.min(selected, ideas.length - 1)] ?? initialIdeas[0];
 
   useEffect(() => () => {
     if (generationTimer.current) clearTimeout(generationTimer.current);
@@ -191,10 +145,8 @@ export default function AiStudioPage() {
 
   function saveDraft() {
     try {
-      const draft: Draft = { id: draftId || String(Date.now()), savedAt: new Date().toISOString(), brief: resultBrief, ideas, selected };
-      const updated = [draft, ...readDrafts().filter((item) => item.id !== draft.id)];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setDrafts(updated);
+      const draft: Draft = { id: draftId || crypto.randomUUID(), savedAt: new Date().toISOString(), brief: resultBrief, ideas, selected };
+      setDrafts((current) => [draft, ...current.filter((item) => item.id !== draft.id)]);
       setDraftId(draft.id);
       setSaved(true);
       toast("Черновик сохранён в этом браузере.");
@@ -204,12 +156,7 @@ export default function AiStudioPage() {
   }
 
   function showDrafts() {
-    try {
-      setDrafts(readDrafts());
-      setDraftsOpen(true);
-    } catch {
-      toast("Не удалось открыть черновики в этом браузере.");
-    }
+    setDraftsOpen(true);
   }
 
   function loadDraft(draft: Draft) {
@@ -232,9 +179,7 @@ export default function AiStudioPage() {
 
   function deleteDraft(id: string) {
     try {
-      const updated = readDrafts().filter((draft) => draft.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      setDrafts(updated);
+      setDrafts((current) => current.filter((draft) => draft.id !== id));
       if (draftId === id) {
         setDraftId(null);
         setSaved(false);

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { useWorkspace } from "@/components/app-shell";
+import { SupportInbox } from "@/components/support-inbox";
 import { Icon, PageHeading, Panel } from "@/components/ui";
+import { useBrowserState } from "@/lib/browser-storage";
 
 const services = [
   { name: "Веб-интерфейс", state: "ok", note: "Статическая сборка" },
@@ -19,13 +20,14 @@ const auditLog = [
 
 export default function AdminPage() {
   const { toast } = useWorkspace();
-  const [maintenance, setMaintenance] = useState(false);
-  const [users, setUsers] = useState([{ id: "u1", name: "Айдана Серикова", role: "Владелец", blocked: false }, { id: "u2", name: "Тимур Ахметов", role: "SMM-специалист", blocked: false }, { id: "u3", name: "Мадина Касымова", role: "Аналитик", blocked: false }]);
+  const [maintenance, setMaintenance] = useBrowserState("admin-maintenance", false);
+  const [users, setUsers] = useBrowserState("admin-users", [{ id: "u1", name: "Айдана Серикова", role: "Владелец", blocked: false }, { id: "u2", name: "Тимур Ахметов", role: "SMM-специалист", blocked: false }, { id: "u3", name: "Мадина Касымова", role: "Аналитик", blocked: false }]);
 
   return <>
-    <PageHeading eyebrow="СЛУЖЕБНЫЙ РАЗДЕЛ" title="Администрирование" description="Состояние сервиса, доступ пользователей и журнал действий."/>
-    <div role="note" className="mb-5 flex items-start gap-3 rounded-2xl border border-[#f1ddce] bg-[#fcf0e6] p-4 text-xs leading-6 text-[#897460]"><Icon name="shield" size={17} className="mt-1 shrink-0"/>Раздел демонстрационный: проверки роли «Администратор платформы» нет, действия ни на что не влияют.</div>
+    <PageHeading eyebrow="СЛУЖЕБНЫЙ РАЗДЕЛ" title="Администрирование" description="Обращения в поддержку, состояние сервиса, доступ пользователей и журнал действий."/>
+    <div role="note" className="mb-5 flex items-start gap-3 rounded-2xl border border-[#f1ddce] bg-[#fcf0e6] p-4 text-xs leading-6 text-[#897460]"><Icon name="shield" size={17} className="mt-1 shrink-0"/>Учебный раздел доступен всем. Обращения, ответы и настройки сохраняются в этом браузере. Управление доступом пользователей демонстрационное.</div>
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{services.map((service) => <Panel key={service.name} className="p-5"><div className="flex items-center gap-2 text-xs font-semibold"><span className={`h-2 w-2 rounded-full ${service.state === "ok" ? "bg-positive" : "bg-[#c9cfc1]"}`}/>{service.name}</div><p className="mt-3 text-[11px] text-muted">{service.note}</p></Panel>)}</div>
+    <SupportInbox/>
     <div className="mt-5 grid gap-5 xl:grid-cols-2">
       <Panel className="p-6"><h2 className="text-base font-semibold tracking-tight">Пользователи</h2>
         <ul className="mt-4 divide-y divide-border">{users.map((user) => <li key={user.id} className="flex items-center justify-between gap-3 py-3.5 text-xs"><span><span className="block font-semibold">{user.name}</span><span className="text-[10px] text-muted">{user.role}</span></span>{user.role === "Владелец" ? <span className="badge">Владелец</span> : <button className="btn btn-secondary !min-h-8 !px-3 !py-1.5 !text-[11px]" onClick={() => { setUsers((previous) => previous.map((item) => item.id === user.id ? { ...item, blocked: !item.blocked } : item)); toast(user.blocked ? `${user.name}: доступ возвращён` : `${user.name}: доступ закрыт`); }}>{user.blocked ? "Вернуть доступ" : "Закрыть доступ"}</button>}</li>)}</ul></Panel>

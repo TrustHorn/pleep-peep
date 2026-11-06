@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useWorkspace } from "@/components/app-shell";
+import { useUserState } from "@/components/auth-context";
 import { Icon, PageHeading, Panel } from "@/components/ui";
 import { compactNumber, demoHashtags, percent } from "@/lib/demo-data";
 
@@ -12,9 +13,9 @@ const sortLabels: Record<SortKey, string> = { avgViews: "Средние прос
 export default function HashtagsPage() {
   const { toast } = useWorkspace();
   const [sort, setSort] = useState<SortKey>("avgViews");
-  const [picked, setPicked] = useState<string[]>([]);
-  const [sets, setSets] = useState<{ name: string; tags: string[] }[]>([{ name: "Утро в кофейне", tags: ["#slowmorning", "#бариста", "#кофеалматы"] }]);
-  const [setName, setSetName] = useState("");
+  const [picked, setPicked] = useUserState<string[]>("hashtags-picked", []);
+  const [sets, setSets] = useUserState<{ name: string; tags: string[] }[]>("hashtags-sets", [{ name: "Утро в кофейне", tags: ["#slowmorning", "#бариста", "#кофеалматы"] }]);
+  const [setName, setSetName] = useUserState("hashtags-set-name", "");
   const [lookup, setLookup] = useState("");
   const [note, setNote] = useState("");
 
@@ -27,7 +28,7 @@ export default function HashtagsPage() {
     const name = setName.trim() || `Набор ${sets.length + 1}`;
     setSets((previous) => [...previous, { name, tags: picked }]);
     setPicked([]); setSetName("");
-    toast(`Набор «${name}» сохранён в проекте`);
+    toast(`Набор «${name}» сохранён в этом браузере`);
   }
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,6 +55,6 @@ export default function HashtagsPage() {
           <Link href="/ai-studio" className="mt-4 flex items-center justify-between text-xs font-semibold text-[#8a704e]">Использовать в AI-студии<Icon name="arrow-up-right" size={15}/></Link></Panel>
       </div>
     </div>
-    <p className="mt-5 flex items-start gap-2 text-[10px] leading-5 text-[#969d8e]"><Icon name="info" size={13} className="mt-0.5 shrink-0"/>Рекомендации основаны на демонстрационной выборке, а не на знании внутренних механизмов продвижения платформ. Наборы хранятся до перезагрузки страницы.</p>
+    <p className="mt-5 flex items-start gap-2 text-[10px] leading-5 text-[#969d8e]"><Icon name="info" size={13} className="mt-0.5 shrink-0"/>Рекомендации основаны на демонстрационной выборке, а не на знании внутренних механизмов продвижения платформ. Наборы и выбранные хештеги сохраняются в этом браузере для вашего аккаунта.</p>
   </>;
 }

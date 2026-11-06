@@ -1,40 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useWorkspace } from "@/components/app-shell";
+import { useAuth, useUserState } from "@/components/auth-context";
 import { EmptyState, Icon, PageHeading, Panel, PlatformBadge } from "@/components/ui";
 import { downloadText } from "@/lib/demo-data";
+import { useStudioDrafts, type Draft } from "@/lib/studio-drafts";
 
-// Формат совпадает с черновиками AI-студии (ключ localStorage).
-type Scene = { time: string; title: string; visual: string; voice: string };
-type Idea = { title: string; hook: string; scenes: Scene[]; cta: string; description: string; hashtags: string };
-type Draft = { id: string; savedAt: string; brief: { platform: "Instagram" | "TikTok"; duration: string; topic: string }; ideas: Idea[]; selected: number };
 type Status = "Черновик" | "На согласовании" | "Утверждён";
 
-const STORAGE_KEY = "pleep-peep:studio-drafts:v1";
 const steps = ["Идея", "Сценарий", "Подтверждение", "Видеочерновик", "Правки", "Экспорт"];
 
-const sampleDraft: Draft = { id: "sample", savedAt: "демо", brief: { platform: "Instagram", duration: "30", topic: "Кофе, ради которого хочется замедлиться" }, selected: 0, ideas: [{ title: "Маленький ритуал большого города", hook: "Этот кофе я варю в 7:40 — и город ждёт.", scenes: [{ time: "0–5 с", title: "Крючок", visual: "Крупный план: струя воды над кофе", voice: "Этот кофе я варю в 7:40." }, { time: "5–20 с", title: "Процесс", visual: "Руки бариста, пар, окно с утренним светом", voice: "Три простых движения, и утро становится медленнее." }, { time: "20–30 с", title: "Финал", visual: "Чашка на стойке, логотип", voice: "Заходите за своим ритуалом." }], cta: "Сохраните, чтобы повторить дома", description: "Утро без спешки. Расскажите, как начинается ваше.", hashtags: "#slowmorning #кофеалматы" }] };
-
-function loadDrafts(): Draft[] {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed.filter((item): item is Draft => !!item && typeof item === "object" && Array.isArray((item as Draft).ideas) && (item as Draft).ideas.length > 0) : [];
-  } catch { return []; }
-}
+const sampleDraft: Draft = {
+  id: "sample",
+  savedAt: "демо",
+  brief: { platform: "Instagram", duration: "30", topic: "Кофе, ради которого хочется замедлиться", audience: "Любители кофе", tone: "Тёплый и живой", hashtags: "#slowmorning #кофеалматы" },
+  selected: 0,
+  ideas: [{
+    title: "Маленький ритуал большого города",
+    format: "Атмосферная история",
+    angle: "Утренний кофейный ритуал",
+    hook: "Этот кофе я варю в 7:40 — и город ждёт.",
+    scenes: [
+      { time: "0–5 с", title: "Крючок", visual: "Крупный план: струя воды над кофе", voice: "Этот кофе я варю в 7:40." },
+      { time: "5–20 с", title: "Процесс", visual: "Руки бариста, пар, окно с утренним светом", voice: "Три простых движения, и утро становится медленнее." },
+      { time: "20–30 с", title: "Финал", visual: "Чашка на стойке, логотип", voice: "Заходите за своим ритуалом." },
+    ],
+    cta: "Сохраните, чтобы повторить дома",
+    description: "Утро без спешки. Расскажите, как начинается ваше.",
+    hashtags: "#slowmorning #кофеалматы",
+  }],
+};
 
 export default function VideoStudioPage() {
   const { toast } = useWorkspace();
-  const [drafts, setDrafts] = useState<Draft[] | null>(null);
+  const { ready } = useAuth();
+  const [drafts] = useStudioDrafts();
   const [active, setActive] = useState(0);
-  const [statuses, setStatuses] = useState<Record<string, Status>>({});
-  const [titles, setTitles] = useState<Record<string, string>>({});
+  const [statuses, setStatuses] = useUserState<Record<string, Status>>("video-statuses", {});
+  const [titles, setTitles] = useUserState<Record<string, string>>("video-titles", {});
   const [sceneIndex, setSceneIndex] = useState(0);
 
-  useEffect(() => { const timer = setTimeout(() => setDrafts(loadDrafts()), 0); return () => clearTimeout(timer); }, []);
-
-  if (drafts === null) return <p className="py-20 text-center text-xs text-muted" role="status">Загружаем черновики…</p>;
+  if (!ready) return <p className="py-20 text-center text-xs text-muted" role="status">Загружаем черновики…</p>;
   const list = drafts.length ? drafts : [sampleDraft];
   const draft = list[Math.min(active, list.length - 1)];
   const idea = draft.ideas[Math.min(draft.selected, draft.ideas.length - 1)];
