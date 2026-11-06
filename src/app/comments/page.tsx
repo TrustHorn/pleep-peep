@@ -1,27 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useWorkspace } from "@/components/app-shell";
 import { EmptyState, Icon, PageHeading, Panel } from "@/components/ui";
 import { commentActions, demoComments, demoVideos, downloadText, type Comment } from "@/lib/demo-data";
+
+import { useCompetitorAccounts } from "@/components/competitor-context";
+import { filterVideosByDateRange, formatDateRange } from "@/lib/date-range";
 
 const sentimentLabel: Record<Comment["sentiment"], string> = { positive: "Положительный", neutral: "Нейтральный", negative: "Отрицательный" };
 const sentimentStyle: Record<Comment["sentiment"], string> = { positive: "bg-[#edf4e9] text-positive", neutral: "bg-soft text-muted", negative: "bg-[#fff0eb] text-[#ad503b]" };
 const MIN_RELIABLE = 30;
 
 export default function CommentsPage() {
-  const { toast } = useWorkspace();
+  const { toast, dateRange } = useWorkspace();
+  const [accounts] = useCompetitorAccounts();
+  const videos = filterVideosByDateRange(dateRange).filter((video) => accounts.some((account) => account.handle === video.account && account.platform === video.platform));
+  const comments = demoComments.filter((comment) => videos.some((video) => video.id === comment.video));
   const [sentiment, setSentiment] = useState<Comment["sentiment"] | "all">("all");
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
 
-  const categories = useMemo(() => Object.entries(demoComments.reduce<Record<string, number>>((acc, item) => { acc[item.category] = (acc[item.category] ?? 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]), []);
-  const visible = demoComments.filter((item) => (sentiment === "all" || item.sentiment === sentiment) && (category === "all" || item.category === category) && `${item.text} ${item.author}`.toLowerCase().includes(query.trim().toLowerCase()));
-  const count = (value: Comment["sentiment"]) => demoComments.filter((item) => item.sentiment === value).length;
+  const categories = Object.entries(comments.reduce<Record<string, number>>((acc, item) => { acc[item.category] = (acc[item.category] ?? 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
+  const visible = comments.filter((item) => (sentiment === "all" || item.sentiment === sentiment) && (category === "all" || item.category === category) && `${item.text} ${item.author}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const count = (value: Comment["sentiment"]) => comments.filter((item) => item.sentiment === value).length;
   const videoTitle = (id: string) => demoVideos.find((video) => video.id === id)?.title ?? "—";
 
   function exportSummary() {
-    const text = `PLEEP·PEEP / АНАЛИЗ КОММЕНТАРИЕВ\nОбработано комментариев: ${demoComments.length}\n\nТональность: положительных ${count("positive")}, нейтральных ${count("neutral")}, отрицательных ${count("negative")}\n\nКатегории и возможные действия:\n${categories.map(([name, total]) => `- ${name} (${total}): ${commentActions[name]}`).join("\n")}\n\nОграничение: выборка меньше ${MIN_RELIABLE} комментариев, достоверность анализа ограничена. Мнение аудитории не является проверенным фактом.`;
+    const text = `PLEEP·PEEP / АНАЛИЗ КОММЕНТАРИЕВ\nПериод публикаций: ${formatDateRange(dateRange)}\nОбработано комментариев: ${comments.length}\n\nТональность: положительных ${count("positive")}, нейтральных ${count("neutral")}, отрицательных ${count("negative")}\n\nКатегории и возможные действия:\n${categories.map(([name, total]) => `- ${name} (${total}): ${commentActions[name]}`).join("\n")}\n\nОграничение: выборка меньше ${MIN_RELIABLE} комментариев, достоверность анализа ограничена. Мнение аудитории не является проверенным фактом.`;
     downloadText("pleep-peep-comments.txt", text);
     toast("Сводка по комментариям скачана");
   }
@@ -30,8 +36,9 @@ export default function CommentsPage() {
     <PageHeading eyebrow="ГОЛОС АУДИТОРИИ" title="Анализ комментариев" description="Тональность, повторяющиеся вопросы и темы. Мнение зрителей показываем отдельно от фактов." >
       <button className="btn btn-secondary" onClick={exportSummary}><Icon name="download" size={16}/>Скачать сводку</button>
     </PageHeading>
-    <div role="note" className="mb-5 flex items-start gap-3 rounded-2xl border border-[#f1ddce] bg-[#fcf0e6] p-4 text-xs leading-6 text-[#897460]"><Icon name="info" size={17} className="mt-1 shrink-0"/><span><b className="text-[#8e573e]">Ограниченная достоверность.</b> В выборке {demoComments.length} комментариев — это меньше порога в {MIN_RELIABLE}. Используйте выводы как гипотезы для проверки, а не как готовые факты.</span></div>
-    <div className="mb-5 grid gap-4 sm:grid-cols-3">{(["positive", "neutral", "negative"] as const).map((key) => <Panel key={key} className="p-5"><span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${sentimentStyle[key]}`}>{sentimentLabel[key]}</span><p className="mt-4 text-3xl font-semibold tracking-tight">{count(key)}</p><p className="mt-1 text-[10px] text-muted">{Math.round(count(key) / demoComments.length * 100)}% от выборки</p></Panel>)}</div>
+    <p className="mb-4 text-xs text-muted">Комментарии к публикациям за {formatDateRange(dateRange)}</p>
+    <div role="note" className="mb-5 flex items-start gap-3 rounded-2xl border border-[#f1ddce] bg-[#fcf0e6] p-4 text-xs leading-6 text-[#897460]"><Icon name="info" size={17} className="mt-1 shrink-0"/><span><b className="text-[#8e573e]">Ограниченная достоверность.</b> В выборке {comments.length} комментариев — это меньше порога в {MIN_RELIABLE}. Используйте выводы как гипотезы для проверки, а не как готовые факты.</span></div>
+    <div className="mb-5 grid gap-4 sm:grid-cols-3">{(["positive", "neutral", "negative"] as const).map((key) => <Panel key={key} className="p-5"><span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${sentimentStyle[key]}`}>{sentimentLabel[key]}</span><p className="mt-4 text-3xl font-semibold tracking-tight">{count(key)}</p><p className="mt-1 text-[10px] text-muted">{Math.round(count(key) / (comments.length || 1) * 100)}% от выборки</p></Panel>)}</div>
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]">
       <Panel className="min-w-0 overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-4">

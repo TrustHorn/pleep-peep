@@ -7,9 +7,10 @@ import { Brand, Icon, Modal } from "./ui";
 import { CompetitorProvider } from "./competitor-context";
 import { ProjectProvider } from "./project-context";
 import { AuthProvider, StorageNotice, useAuth, useUserState } from "./auth-context";
+import { DateRangePicker } from "./date-range-picker";
+import { DEFAULT_DATE_RANGE, dateRangeDays, isValidDateRange, type DateRange } from "@/lib/date-range";
 
-type Period = "7" | "30" | "90";
-const WorkspaceContext = createContext<{ period: Period; toast: (message: string) => void }>({ period: "30", toast: () => {} });
+const WorkspaceContext = createContext<{ period: string; dateRange: DateRange; toast: (message: string) => void }>({ period: "30", dateRange: DEFAULT_DATE_RANGE, toast: () => {} });
 export const useWorkspace = () => useContext(WorkspaceContext);
 const navigation = [
   { href: "/dashboard", label: "Обзор проекта", icon: "grid", number: "01" },
@@ -37,8 +38,10 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
   const { user, ready, logout } = useAuth();
   const current = navigation.find((item) => pathname.startsWith(item.href)) ?? navigation[0];
   const isAuth = authRoutes.some((route) => pathname.startsWith(route));
-  const [period, setPeriod] = useUserState<Period>("period", "30");
+  const [storedDateRange, setDateRange] = useUserState<DateRange>("date-range", DEFAULT_DATE_RANGE);
   const [workspace] = useUserState("workspace-settings", { name: "SLOW Coffee", niche: "Кофейня · Алматы", base: "views", period: "30" });
+  const dateRange = isValidDateRange(storedDateRange) ? storedDateRange : DEFAULT_DATE_RANGE;
+  const period = String(dateRangeDays(dateRange));
   const [mobileMenu, setMobileMenu] = useState(false);
   const [about, setAbout] = useState(false);
   const [search, setSearch] = useState(false);
@@ -65,7 +68,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
       {item.icon === "sparkles" ? <span className="rounded bg-[#e1e8d9] px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-[#658053]">AI</span> : <span className="text-[10px] opacity-40">{item.number}</span>}
     </Link>)}</nav>;
 
-  return <WorkspaceContext.Provider value={{ period, toast }}>
+  return <WorkspaceContext.Provider value={{ period, dateRange, toast }}>
     <a href="#main-content" className="fixed -top-20 left-4 z-100 rounded-xl bg-ink px-4 py-3 text-white focus:top-4">К содержимому</a>
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[230px] flex-col border-r border-border bg-white lg:flex">
       <Link href="/" className="px-6 pt-8 pb-8" aria-label="pleep-peep — обзор"><Brand/></Link>
@@ -89,7 +92,7 @@ function WorkspaceShell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-2 sm:gap-5">
           <button onClick={() => setAbout(true)} className="hidden items-center gap-1.5 text-[10px] text-muted md:flex"><span className="h-1.5 w-1.5 rounded-full bg-accent"/>Демо-данные</button>
           <button onClick={() => setSearch(true)} className="hidden rounded-lg p-2 text-muted hover:bg-soft sm:block" aria-label="Поиск по страницам"><Icon name="search" size={18}/></button>
-          <label className="relative flex items-center gap-2 rounded-lg border border-border bg-white px-2.5 py-2 text-[11px]"><Icon name="calendar" size={15} className="text-muted"/><span className="sr-only">Период исследования</span><select value={period} onChange={(event) => setPeriod(event.target.value as Period)} className="max-w-24 appearance-none bg-transparent pr-4 text-[11px] outline-none"><option value="7">7 дней</option><option value="30">30 дней</option><option value="90">90 дней</option></select><Icon name="chevron-down" size={12} className="pointer-events-none absolute right-2"/></label>
+          <DateRangePicker value={dateRange} onChange={setDateRange}/>
           <span className="hidden h-7 w-px bg-border sm:block"/><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e6eddf] text-[10px] font-semibold text-[#68795a]" aria-label={user?.name ?? "Демо-пространство"}>{initials}</span>{user ? <button className="text-xs text-muted hover:text-accent" onClick={signOut}>Выйти</button> : <Link href="/login" className="text-xs font-semibold text-accent">Войти</Link>}
         </div>
       </header>
